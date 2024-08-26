@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision Assist</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        #video { width: 100%; max-width: 500px; }
+        #response { margin-top: 20px; padding: 10px; border: 1px solid #ccc; min-height: 100px; }
+        #captureBtn { margin-top: 10px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Vision Assist</h1>
+    <video id="video" autoplay playsinline></video>
+    <button id="captureBtn">Capture and Analyze</button>
+    <div id="response"></div>
+    <script>
+        const video = document.getElementById('video');
+        const responseDiv = document.getElementById('response');
+        const captureBtn = document.getElementById('captureBtn');
+        let wakeLock = null;
+
+        async function setupCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = stream;
+                
+                if ('wakeLock' in navigator) {
+                    try {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                    } catch (err) {
+                        console.error(`${err.name}, ${err.message}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error setting up camera:', error);
+                responseDiv.textContent = 'Error setting up camera. Please ensure you have given camera permissions and are using a supported browser.';
+            }
+        }
+
+        async function captureAndAnalyze() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageDataUrl = canvas.toDataURL('image/jpeg');
+
+            try {
+                const response = await axios.post('https://your-render-service-url.onrender.com/analyze', {
+                    image: imageDataUrl
+                });
+
+                const aiResponse = response.data.content;
+                responseDiv.textContent = aiResponse;
+                speak(aiResponse);
+            } catch (error) {
+                console.error('Error analyzing image:', error);
+                responseDiv.textContent = 'Error analyzing image. Please try again.';
+            }
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            speechSynthesis.speak(utterance);
+        }
+
+        captureBtn.addEventListener('click', captureAndAnalyze);
+
+        setupCamera();
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'hidden') {
+                await wakeLock.release();
+                wakeLock = null;
+            } else if (wakeLock === null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                } catch (err) {
+                    console.error(`${err.name}, ${err.message}`);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
