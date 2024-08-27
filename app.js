@@ -12,14 +12,19 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 app.post('/analyze', async (req, res) => {
   try {
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo",  // Updated model
       messages: [
         {
           role: "user",
-          content: [
-            { type: "text", text: "What do you see in this image? Describe any text, objects, signs, or other important details." },
-            { type: "image_url", image_url: { url: req.body.image, detail: "auto" } }
-          ]
+          content: "Analyze this image and describe any important details."
+        },
+        {
+          role: "system",
+          content: "The image is provided as a URL in the next message."
+        },
+        {
+          role: "user",
+          content: req.body.image // assuming image URL or base64 data
         }
       ],
       max_tokens: 300

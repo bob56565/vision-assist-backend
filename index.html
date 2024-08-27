@@ -49,7 +49,7 @@
             const imageDataUrl = canvas.toDataURL('image/jpeg');
 
             try {
-                const response = await axios.post('https://your-render-service-url.onrender.com/analyze', {
+                const response = await axios.post('https://vision-assist-backend.onrender.com/analyze', {
                     image: imageDataUrl
                 });
 
